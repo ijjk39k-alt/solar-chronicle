@@ -2,6 +2,23 @@
 // Times are billions of years relative to the present. Uncertain dates have a
 // representative coordinate for navigation and an explicit user-facing range.
 const sources = {
+ oceans:['Smithsonian · 바다의 역사','https://ocean.si.edu/through-time/ocean-through-time'],
+ life:['Smithsonian · 초기 생명과 동물','https://naturalhistory.si.edu/education/teaching-resources/life-science/early-life-earth-animal-origins'],
+ oxygen:['NASA · 대산소화 사건','https://astrobiology.nasa.gov/news/clues-to-oxygen-on-earth-before-the-great-oxidation-event/'],
+ permian:['워싱턴대 · 페름기 말 대멸종 연구','https://www.washington.edu/news/2018/12/06/biggest-extinction-in-earths-history-caused-by-global-warming-leaving-ocean-animals-gasping-for-breath/'],
+ dinosaurs:['런던 자연사박물관 · 공룡의 기원','https://www.nhm.ac.uk/discover/where-did-dinosaurs-come-from.html'],
+ mammals:['런던 자연사박물관 · 초기 포유류 연구','https://www.nhm.ac.uk/press-office/press-releases/earliest-known-mammal-is-identified-using-fossil-tooth-records.html'],
+ humans:['Smithsonian · 호모 사피엔스','https://humanorigins.si.edu/evidence/human-fossils/species/homo-sapiens'],
+ pangea:['브리스틀대 · 미래 초대륙 기후 모형','https://www.bristol.ac.uk/cabot/news/2023/wipe-out.html'],
+ futureOxygen:['Ozaki & Reinhard (2021) · 산소 대기의 미래','https://arxiv.org/abs/2103.02694'],
+ futureWater:['Wolf & Toon (2015) · 밝아지는 태양과 기후','https://doi.org/10.1002/2015JD023302'],
+ stellar:['ESA · 별의 진화 안내','https://cesar.esa.int/upload/201809/mod_stellarevolution_booklet.pdf'],
+ gamma:['NASA · 감마선 폭발과 오존층 가설','https://imagine.gsfc.nasa.gov/ask_astro/grb.html'],
+ apollo:['NASA · 아폴로 11호와 달의 발자국','https://nssdc.gsfc.nasa.gov/planetary/lunar/apollo_11_30th.html'],
+ holocene:['ICS · 홀로세의 공식 기준','https://stratigraphy.org/gssps/holocene'],
+ anthropocene:['ICS · 인류세 제안의 지위','https://quaternary.stratigraphy.org/working-groups/anthropocene'],
+ galaxy2025:['NASA (2025) · 은하 충돌의 불확실성','https://science.nasa.gov/missions/hubble/apocalypse-when-hubble-casts-doubt-on-certainty-of-galactic-collision/'],
+ galaxy2026:['Wu 외 (2026) · 은하 합병 재분석, 사전 공개 논문','https://arxiv.org/abs/2603.22863'],
  earth:['NASA · 지구','https://science.nasa.gov/earth/facts/'],
  snowball:['NASA GISS · 눈덩이 지구 연구','https://www.giss.nasa.gov/research/features/201508_slushball/'],
  impactEarth:['LPI · 칙술루브 충돌','https://www.lpi.usra.edu/science/kring/Chicxulub/'],
@@ -61,13 +78,31 @@ historyEvents.push(
  {id:'thaw',year:-.635,date:'약 6억 3,500만 년 전',title:'긴 빙하기를 벗어나다',body:'크라이오제니아기의 마지막 큰 빙하기가 끝나면서 바다와 지표의 환경도 변화합니다. 얼음이 물러나는 과정과 그 원인을 기후 모형으로 연구하고 있습니다.',kind:'evidence',badge:'지질 기록·기후 모형',target:'지구',focus:2,effect:'thaw',note:'해빙 효과는 변화를 설명하기 위한 장면입니다. 실제 해빙 속도나 대륙 배치를 재현하지 않습니다.',refs:['snowball']},
  {id:'chicxulub',year:-.066,date:'약 6,600만 년 전',title:'우주에서 온 충돌, 지구의 전환점',body:'칙술루브 충돌은 백악기 말 대멸종과 연결됩니다. 충돌구와 경계 지층의 기록은 거대한 충돌이 지구 환경에 남긴 흔적을 보여줍니다.',kind:'evidence',badge:'충돌구·지층 증거',target:'지구',focus:2,effect:'chicxulub',note:'확산되는 빛과 먼지는 충돌의 개념 표현입니다. 실제 충돌 위치·규모·지속 시간을 비례 재현하지 않습니다.',refs:['impactEarth']}
 );
+// Representative dates organize a story; ranges and uncertainty remain visible.
+historyEvents.push(
+ {id:'early-oceans',year:-4.35,date:'약 44~40억 년 전 · 대표 위치',title:'뜨거운 지구에 바다가 자리 잡다',body:'지구가 식으며 수증기가 응결하고 액체 물이 머물 환경이 생깁니다. 오래된 지르콘은 이른 시기에 물이 있었음을 시사합니다. 달을 만든 충돌과 바다의 형성은 한순간에 끝난 같은 사건이 아닙니다.',kind:'evidence',badge:'광물 증거·해석',target:'지구',focus:2,effect:'ocean-life',note:'43.5억 년 전은 넓은 형성 과정을 보여 주는 위치입니다. 물의 공급과 바다의 안정화 경로는 연구 중이며, 화면은 당시 대륙 지도가 아닙니다.',refs:['oceans','moon']},
+ {id:'great-oxidation',year:-2.4,date:'약 24억 년 전 전후',title:'생명이 지구의 대기를 바꾸다',body:'광합성 생물이 내놓은 산소가 대기와 바다에 축적됩니다. 암석에 남은 화학적 기록은 대산소화 사건을 보여 줍니다. 오늘날과 같은 산소 농도가 곧바로 완성된 것은 아닙니다.',kind:'evidence',badge:'지질·화학 증거',target:'지구',focus:2,effect:'oxygen',note:'산소의 생산, 축적, 복잡한 생명의 진화는 서로 다른 시기에 걸친 과정입니다.',refs:['oxygen','life']},
+ {id:'cambrian',year:-.539,date:'약 5억 4천만 년 전부터',title:'바다에서 동물의 모습이 다양해지다',body:'캄브리아기에 여러 동물 무리가 화석 기록에 풍부하게 나타납니다. 초기 척추동물을 포함한 바다 생태계가 다양해지지만, 생명이나 동물 자체가 이때 처음 생긴 것은 아닙니다.',kind:'evidence',badge:'화석 증거',target:'지구',focus:2,effect:'ocean-life',note:'캄브리아기 이전에도 미생물과 동물이 있었습니다. ‘폭발’은 지질학적으로 빠른 다양화를 뜻하며 순간적인 탄생이 아닙니다.',refs:['life','oceans']},
+ {id:'permian-extinction',year:-.252,date:'약 2억 5,200만 년 전',title:'화산과 온난화, 페름기 말 대멸종',body:'시베리아의 대규모 화산활동과 연결된 온난화, 바다의 산소 부족 등이 생태계를 무너뜨린 주요 설명입니다. 이 사건은 약 6,600만 년 전 소행성 충돌과 구분해야 합니다.',kind:'evidence',badge:'지질 증거·원인 모형',target:'지구',focus:2,effect:'volcanism',note:'대멸종은 화석으로 확인되지만 원인의 기여도는 연구 중입니다. 2억 5천만 년 전을 확정된 대형 소행성 충돌 날짜로 표시하지 않습니다.',refs:['permian']},
+ {id:'dinosaurs-mammals',year:-.225,date:'약 2억 3천만~2억 년 전',title:'공룡과 초기 포유류가 함께 살다',body:'트라이아스기에는 초기 공룡과 포유류 계통이 등장합니다. 작은 포유류는 공룡이 사라진 뒤 갑자기 생긴 것이 아니라 오랜 기간 공룡과 함께 살았습니다.',kind:'evidence',badge:'화석 증거·분류 연구',target:'지구',focus:2,effect:'biosphere',note:'2억 2,500만 년 전은 여러 출현 시기를 묶은 위치입니다. 가장 이른 공룡·포유류의 범위는 화석 해석과 분류 기준에 따라 달라집니다.',refs:['dinosaurs','mammals']},
+ {id:'human-origins',year:-.0003,date:'약 30만 년 전부터',title:'태양계 시간 속 아주 짧은 인류의 역사',body:'호모 사피엔스는 아프리카에서 진화해 세계로 퍼졌습니다. 우리가 익숙한 인류의 역사는 46억 년 태양계 역사에서 극히 짧습니다. 문명의 미래는 정해진 천문학적 시간표가 아닙니다.',kind:'evidence',badge:'화석·고고학 증거',target:'지구',focus:2,effect:'biosphere',note:'인류의 기원, 농경의 확산, 홀로세의 시작은 같은 사건이 아닙니다. 시간축에서 현재와 매우 가깝게 보이는 것이 정상입니다.',refs:['humans','holocene']},
+ {id:'future-supercontinent',year:.25,date:'약 2억 5천만 년 후 · 한 시나리오',title:'대륙이 다시 하나로 모인다면',body:'미래 초대륙 ‘판게아 울티마’를 가정한 기후 모형은 더 밝은 태양, 대륙의 배치와 이산화탄소 증가가 포유류에 매우 덥고 건조한 환경을 만들 수 있다고 봅니다.',kind:'future',badge:'판 구조·기후 시나리오',target:'지구',focus:2,effect:'supercontinent',note:'미래 대륙의 이름·모양·시점은 확정되지 않았습니다. 다른 초대륙 시나리오도 있으며, 이 위치는 소행성 충돌 예정일이나 인류 멸종일이 아닙니다. 대륙 그림은 상징입니다.',refs:['pangea']},
+ {id:'future-oxygen',year:1.08,date:'약 10억 년 후 전후 · 모형 의존',title:'산소가 풍부한 지구는 얼마나 더 갈까?',body:'2021년 지구 시스템 모형은 태양이 밝아짐에 따라 광합성과 탄소 순환이 변해 산소가 풍부한 대기가 약 10억 년 규모로 유지될 수 있다고 추정했습니다. 산소 감소는 바다가 모두 사라지는 것과 별개입니다.',kind:'future',badge:'생지화학 모형',target:'지구',focus:2,effect:'deoxygenation',note:'논문의 평균 추정은 약 10.8억 년이며 오차와 모형 의존성이 있습니다. 그날 모든 생명이나 인간이 사라진다는 예측이 아닙니다.',refs:['futureOxygen']},
+ {id:'future-water',year:2,date:'앞으로 수십억 년 규모 · 대표 위치',title:'밝아지는 태양, 오래 버티기 어려운 바다',body:'더 강한 햇빛은 지구를 가열하고 대기 중 수증기를 늘립니다. 물이 우주로 빠져나가는 과정도 중요해집니다. 바다의 소실 시점과 온난화 경로는 구름·대기·탄소 순환을 다루는 모형에 따라 다릅니다.',kind:'future',badge:'장기 기후 모형',target:'지구',focus:2,effect:'water-loss',note:'20억 년 후는 설명을 위한 위치이며 바다가 완전히 마르는 날짜가 아닙니다. ‘10억 년 후 금성과 동일한 이산화탄소·메탄 행성’으로 확정할 수 없습니다. 색 변화는 하나의 건조화 개념 표현입니다.',refs:['futureWater','futureOxygen']},
+ {id:'helium-burning',year:7.62,date:'첫 거성 단계 뒤 · 약 80억 년 후 전후',title:'한 차례 줄어드는 태양, 헬륨을 태우다',body:'중심의 헬륨 핵융합이 시작되면 태양은 첫 적색거성의 최대 크기에서 줄어드는 단계를 거칩니다. 중심에서는 헬륨으로부터 탄소와 산소가 만들어집니다. 곧바로 백색왜성이 되는 것은 아닙니다.',kind:'future',badge:'항성 진화 모형',target:'태양',focus:-1,effect:'helium-burning',note:'76.2억 년 후는 단계의 순서를 보여 주는 대표 좌표입니다. 실제 시기와 크기는 모형에 따라 달라지며, 줄어들어도 오늘날의 태양으로 되돌아가는 것은 아닙니다.',refs:['stellar','giant']},
+ {id:'second-giant',year:7.68,date:'중심 헬륨 고갈 뒤 · 대표 위치',title:'다시 거성이 되는 태양',body:'중심의 헬륨이 줄어들면 탄소·산소 핵 주위의 껍질에서 핵융합이 이어집니다. 태양은 다시 팽창하는 점근거성가지 단계로 들어가며 바깥층을 잃어 갑니다.',kind:'future',badge:'항성 진화 모형',target:'태양',focus:-1,effect:'second-giant',note:'두 차례의 큰 거성 단계 사이에 중심 헬륨 연소가 있습니다. 두 번째 최대 크기가 첫 번째보다 반드시 큰 것은 아니며, 화면의 연대는 순서용입니다.',refs:['stellar','giant']},
+ {id:'thermal-pulses',year:7.74,date:'후기 거성 단계 · 대표 위치',title:'맥동하며 바깥층을 내보내다',body:'후기 거성의 헬륨 연소 껍질은 열적 맥동을 일으켜 밝기와 크기를 변화시킬 수 있습니다. 이런 변화와 질량 손실 뒤에는 뜨거운 핵이 남습니다. 태양이 초신성처럼 폭발하는 과정은 아닙니다.',kind:'future',badge:'항성 진화 모형',target:'태양',focus:-1,effect:'thermal-pulses',note:'열적 맥동의 횟수·간격·진폭은 모형 의존적입니다. 화면의 부풀고 줄어드는 동작은 과정을 압축한 개념도이며 실제 주기나 횟수를 나타내지 않습니다.',refs:['giant','stellar']}
+);
+Object.assign(historyEvents.find(e=>e.id==='early-life'),{year:-3.7,date:'약 37~35억 년 전의 흔적',body:'오래된 암석의 탄소 흔적과 미생물이 만든 구조는 초기 생명 활동을 연구하는 단서입니다. 이때의 생명은 물고기 같은 동물이 아니라 미생물이었습니다. 생명의 정확한 기원 시점은 여전히 연구 중입니다.',note:'37억 년 전은 오래된 흔적을 보여 주는 대표 위치이며 탄생일이 아닙니다. 더 오래된 생명 증거의 해석에는 논쟁이 있습니다.',refs:['life']});
+Object.assign(historyEvents.find(e=>e.id==='moon-impact'),{body:'화성 크기의 원시 천체가 어린 지구에 충돌하고 파편에서 달이 형성됐다는 가설이 유력합니다. 오늘날의 달이나 태양이 지구와 충돌했다는 뜻은 아닙니다. 달과 지구 암석의 성분이 중요한 단서입니다.'});
+Object.assign(historyEvents.find(e=>e.id==='chicxulub'),{title:'K–Pg 대멸종, 소행성이 남긴 전환점',body:'약 6,600만 년 전 칙술루브 소행성 충돌은 K–Pg 대멸종의 주요 원인입니다. 새를 제외한 공룡과 많은 생물이 사라졌고, 살아남은 포유류와 새는 이후 다양해졌습니다.',refs:['impactEarth','oceans']});
 historyEvents.sort((a,b)=>a.year-b.year);
 const bodyEvents = {
  system:['cloud','grains','disk-clears','present'],
- sun:['cloud','disk-clears','sun-warms','hydrogen-end','red-giant','earth-fate','mass-loss','nebula','white-dwarf'],
+ sun:['cloud','disk-clears','sun-warms','hydrogen-end','red-giant','earth-fate','helium-burning','second-giant','mass-loss','thermal-pulses','nebula','white-dwarf'],
  mercury:['rocky-worlds','bombardment','red-giant'],
  venus:['rocky-worlds','bombardment','venus-question','red-giant'],
- earth:['rocky-worlds','moon-impact','bombardment','early-life','snowball','thaw','chicxulub','present','earth-fate'],
+ earth:['rocky-worlds','moon-impact','early-oceans','bombardment','early-life','great-oxidation','snowball','thaw','cambrian','permian-extinction','dinosaurs-mammals','chicxulub','human-origins','present','future-supercontinent','future-oxygen','future-water','earth-fate'],
  moon:['moon-impact','magma-moon','lunar-crust','bombardment','lunar-maria'],
  mars:['rocky-worlds','grand-tack','wet-mars','mars-loss','phobos'],
  phobos:['phobos'],jupiter:['jupiter','grand-tack','giant-instability','mass-loss'],

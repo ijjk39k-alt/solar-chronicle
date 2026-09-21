@@ -34,10 +34,13 @@ for (const speed of [0.5, 1, 2]) {
   });
 }
 
-test('1× journey lasts 6 minutes 40 seconds with the current 32 events', () => {
-  assert.equal(stops.length, 32);
+test('expanded journey keeps the solar-system endpoints and stays under nine minutes at 1×', () => {
+  assert.equal(years[0], -4.6);
+  assert.equal(years.at(-1), 8);
+  assert.equal(stops.length, 44);
   const seconds = stops.slice(0, -1).reduce((sum, _, i) => sum + playback.duration(i, 1, stops), 0);
-  near(seconds, 400);
+  near(seconds, 520);
+  assert.ok(seconds < 540);
 });
 
 test('an event changes at its true date and leftover frame time continues forward', () => {

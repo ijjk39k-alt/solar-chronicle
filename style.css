@@ -32,6 +32,14 @@
 @media(max-width:650px){.era-button{font-size:10px}.era-button small{font-size:9px}.era-button:nth-child(4),.era-button:nth-child(6){display:none}.event-card{max-height:338px}.narrative-status{font-size:10px}.tree-branch{padding-left:9px}.tree-branch summary{font-size:15px;padding:12px 4px}.tree-branch .tree-branch .tree-branch{margin-left:-3px}#chronicle{padding:20px}.archive-tabs button{font-size:13px;padding:10px 12px}}
 
 /* Continuous exploration controls and an always-readable story card. */
+.related-stories{display:grid;gap:8px;margin-top:14px}
+.related-stories:empty{display:none}
+.related-stories button{padding:10px 12px;text-align:left;border:1px solid #bfe8ce40;border-radius:6px;font-size:12px;line-height:1.6;color:var(--mint);background:#bfe8ce08}
+.related-stories button:hover{background:#bfe8ce18}
+.archive-tabs{flex-wrap:wrap}
+#storyDialog{width:min(680px,calc(100vw - 32px))}
+#storyDialog .story-footnote{font-size:12px;color:var(--muted);margin-top:24px}
+#storyList>p{font-size:14px;color:#9db0b8}
 #startOver{font-size:12px;padding:8px;white-space:nowrap;color:var(--mint)}
 .transport{flex-shrink:0}.transport button{white-space:nowrap}
 .time-readout strong{font-variant-numeric:tabular-nums;min-width:190px}

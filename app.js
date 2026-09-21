@@ -67,6 +67,7 @@ const textures=planets.map(sphereTexture);
 const moltenEarth=sphereTexture({color:[222,103,42]},3);
 const iceEarth=sphereTexture({color:[202,224,235]},3);
 const oceanEarth=sphereTexture({color:[49,120,166]},3);
+const dryEarth=sphereTexture({color:[181,130,77]},3);
 const wetMars=sphereTexture({color:[116,142,153]},3);
 const sunTexture=(()=>{const c=document.createElement('canvas');c.width=c.height=240;const g=c.getContext('2d'),im=g.createImageData(240,240);for(let y=0;y<240;y++)for(let x=0;x<240;x++){const nx=(x-120)/117,ny=(y-120)/117,r=Math.hypot(nx,ny);if(r>1)continue;const n=(Math.sin(x*.74+Math.sin(y*.56))*Math.cos(y*.9)+rand()*1.4)/2.4,b=1-r*r*.28;let i=(y*240+x)*4;im.data[i]=255*b;im.data[i+1]=(187+n*34)*b;im.data[i+2]=(61+n*22)*b;im.data[i+3]=clamp((1-r)*1400,0,255)}g.putImageData(im,0,0);return c})();
 
@@ -76,6 +77,8 @@ function yearAt(t){return mix(FIRST_YEAR,LAST_YEAR,clamp(t,0,7)/7)}
 function timeForYear(year){return clamp((year-FIRST_YEAR)/(LAST_YEAR-FIRST_YEAR)*7,0,7)}
 function eventPosition(i){return timeForYear(historyEvents[i].year)}
 const eventStops=historyEvents.map((_,i)=>eventPosition(i));
+const tourSeconds=Math.round(eventStops.slice(0,-1).reduce((total,_,i)=>total+SolarPlayback.duration(i,1,eventStops),0));
+textIfChanged('tourDuration',`약 ${Math.floor(tourSeconds/60)}분 ${tourSeconds%60}초`);
 function indexAtTime(time){return SolarPlayback.indexAt(time,eventStops)}
 const narrative={opacity:1};
 const bodyFocus={sun:-1,mercury:0,venus:1,earth:2,moon:2,mars:3,phobos:3,jupiter:4,saturn:5,uranus:6,neptune:7};
@@ -142,8 +145,17 @@ function buildTree(node,parent,depth=0){
  for(const child of node.children||[])buildTree(child,branch,depth+1);parent.appendChild(branch);
 }
 buildTree(encyclopedia,ui.bodyTree);
-function archiveView(tree){ui.eventList.hidden=tree;ui.bodyTree.hidden=!tree;ui.chronologyTab.setAttribute('aria-pressed',String(!tree));ui.bodiesTab.setAttribute('aria-pressed',String(tree));textIfChanged('chronicleTitle',tree?'천체별 역사 도감':'태양계의 사건 연대기')}
-ui.chronologyTab.onclick=()=>archiveView(false);ui.bodiesTab.onclick=()=>archiveView(true);
+function archiveView(view){ui.eventList.hidden=view!=='time';ui.bodyTree.hidden=view!=='bodies';ui.storyList.hidden=view!=='stories';ui.chronologyTab.setAttribute('aria-pressed',String(view==='time'));ui.bodiesTab.setAttribute('aria-pressed',String(view==='bodies'));ui.storiesTab.setAttribute('aria-pressed',String(view==='stories'));textIfChanged('chronicleTitle',view==='bodies'?'천체별 역사 도감':view==='stories'?'태양계에서 이어지는 이야기':'태양계의 사건 연대기')}
+ui.chronologyTab.onclick=()=>archiveView('time');ui.bodiesTab.onclick=()=>archiveView('bodies');ui.storiesTab.onclick=()=>archiveView('stories');
+function openStory(story){
+ pause();textIfChanged('storyTitle',story.title);textIfChanged('storyBadge',story.badge);ui.storyBadge.className='badge '+story.kind;
+ ui.storyBody.replaceChildren();ui.storySources.replaceChildren();
+ for(const paragraph of story.paragraphs){const p=document.createElement('p');p.textContent=paragraph;ui.storyBody.appendChild(p)}
+ for(const ref of story.refs){const a=document.createElement('a');a.href=sources[ref][1];a.textContent=sources[ref][0]+' ↗';a.target='_blank';a.rel='noopener noreferrer';ui.storySources.appendChild(a)}
+ ui.storyDialog.showModal();ui.storyDialog.scrollTop=0;
+}
+for(const story of contextStories){const b=document.createElement('button');b.className='tree-event';b.innerHTML=`<small>${story.badge}</small><strong>${story.title} ↗</strong>`;b.onclick=()=>openStory(story);ui.storyList.appendChild(b)}
+ui.closeStory.onclick=()=>ui.storyDialog.close();
 $('eventCount').textContent=historyEvents.length;
 function setTime(value,announce=false,automatic=false){
  const n=Number(value);if(!Number.isFinite(n))return;
@@ -161,14 +173,19 @@ function syncUI(){
  textIfChanged('eraRange',`사건 ${state.event+1} / ${historyEvents.length} · ${e.target}`);
  const aria=`${valueText} ${year<0?'전':year>0?'후':''}, ${e.title}`;if(ui.timeline.getAttribute('aria-valuetext')!==aria)ui.timeline.setAttribute('aria-valuetext',aria);
  eraButtons.forEach(({button,year:y})=>button.classList.toggle('active',Math.abs(year-y)<1e-8));
- const chapterKey=state.era+':'+(year>0)+':'+(year>-4.45);
+ const solarStage=SolarEvolution.sun(year).stage;
+ const chapterKey=state.era+':'+(year>0)+':'+(year>-4.45)+':'+solarStage;
  if(chapterKey!==lastUIChapter){lastUIChapter=chapterKey;
   ui.eraTitle.innerHTML=state.era===2&&year>-4.45?'행성들이 쓴<br>서로 다른 역사':state.era===3&&year>0?'익숙한 세계의<br>다음 장면':chapter.title;
   ui.eraSubtitle.innerHTML=state.era===2&&year>-4.45?'충돌, 물, 대기, 그리고 고리.<br>각자의 시간이 태양계를 바꿉니다.':state.era===3&&year>0?'우리가 아는 태양계도<br>영원히 같은 모습은 아닙니다.':chapter.subtitle;
   textIfChanged('chapter',`CHAPTER ${String(state.era+1).padStart(2,'0')} / 08`);textIfChanged('sceneKind',state.era===2&&year>-4.45?'주계열성':chapter.kind);
+ const stageLabels={helium:['헬륨을 태우는<br>태양의 다음 장','첫 거성의 최대 크기에서 줄어들고,<br>중심에서는 새로운 핵융합이 이어집니다.','중심 헬륨 연소'],second:['다시 부푸는<br>오래된 별','핵을 둘러싼 껍질에서 핵융합이 이어지며<br>두 번째 거성 단계로 향합니다.','두 번째 거성 단계'],pulses:['맥동하는 별의<br>마지막 거성 시절','밝기와 크기가 변하고,<br>바깥층은 우주로 흩어집니다.','열적 맥동 · 개념 표현']};
+ if(stageLabels[solarStage]){const [title,subtitle,kind]=stageLabels[solarStage];ui.eraTitle.innerHTML=title;ui.eraSubtitle.innerHTML=subtitle;textIfChanged('sceneKind',kind)}
  }
  if(lastUIEvent!==state.event){
+  ui.eventCard.scrollTop=0;
   lastUIEvent=state.event;textIfChanged('evidence',e.badge);ui.evidence.className='badge '+e.kind;textIfChanged('eventTitle',e.title);textIfChanged('eventText',e.body);textIfChanged('eventDate',e.date);textIfChanged('eventTarget',e.target);textIfChanged('eventNote',e.note);ui.eventDetails.open=false;
+  ui.relatedStories.replaceChildren();for(const story of contextStories.filter(story=>story.anchors.includes(e.id))){const b=document.createElement('button');b.textContent='더 알아보기 · '+story.title;b.onclick=()=>openStory(story);ui.relatedStories.appendChild(b)}
   const source=sources[e.refs[0]];ui.eventSource.href=source[1];ui.eventSource.textContent=source[0]+' · 근거 읽기 ↗';ui.extraSources.replaceChildren();for(const ref of e.refs.slice(1)){const link=document.createElement('a');link.href=sources[ref][1];link.textContent=sources[ref][0]+' ↗';link.target='_blank';link.rel='noopener noreferrer';ui.extraSources.appendChild(link)}
   textIfChanged('eventNumber',`${String(state.event+1).padStart(2,'0')} / ${historyEvents.length}`);textIfChanged('sceneDetail',e.target+' · '+e.badge);textIfChanged('focusCaption',focusName(e)+' · '+e.title);
   markerButtons.forEach((b,i)=>{b.classList.toggle('active',i===state.event);if(i===state.event)b.setAttribute('aria-current','step');else b.removeAttribute('aria-current')});
@@ -197,7 +214,7 @@ canvas.addEventListener('pointermove',e=>{if(state.dragging){setTime(dragTime+(e
 function endDrag(){if(state.dragging){state.dragging=false;setTime(state.time,true)}}canvas.addEventListener('pointerup',endDrag);canvas.addEventListener('pointercancel',endDrag);canvas.addEventListener('lostpointercapture',endDrag);
 $('sourcesButton').onclick=()=>{pause();$('guide').showModal()};$('closeGuide').onclick=()=>$('guide').close();$('guide').addEventListener('click',e=>{if(e.target===$('guide')){const r=$('guide').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$('guide').close()}});
 $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else{$('announcement').textContent='이 브라우저에서는 전체 화면을 지원하지 않습니다.';$('fullscreen').textContent='—'}}catch{$('announcement').textContent='전체 화면으로 전환할 수 없습니다.'}};
-document.addEventListener('keydown',e=>{if($('guide').open||$('chronicle').open||$('markerPicker').open||e.target.matches('input,button,a'))return;if(e.code==='Space'){e.preventDefault();togglePlay()}if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();pause();setTime(state.time+(e.key==='ArrowRight'?.04:-.04),true)}});
+document.addEventListener('keydown',e=>{if($('guide').open||$('chronicle').open||$('markerPicker').open||ui.storyDialog.open||e.target.closest('input,button,a,summary'))return;if(e.code==='Space'){e.preventDefault();togglePlay()}if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();pause();setTime(state.time+(e.key==='ArrowRight'?.04:-.04),true)}});
 document.addEventListener('visibilitychange',()=>{previous=0;uiDirty=true});
 
 const glowCache=new Map();
@@ -218,7 +235,7 @@ function draw(now){
  const radius=mobile?W*.465:Math.min(W*.43,(H-300)*.9),flatten=mobile?.40:.39,rotation=-.20;
  const point=(r,a,z=0)=>{const x=Math.cos(a)*r,y=Math.sin(a)*r*flatten;return{x:cx+x*Math.cos(rotation)-y*Math.sin(rotation),y:cy+x*Math.sin(rotation)+y*Math.cos(rotation)+z}};
  ctx.globalAlpha=1;if(backdropReady)ctx.drawImage(background,0,0,W,H);
- const red=smooth(4,5,t)*(1-smooth(5.75,6.2,t));const remnant=smooth(5.8,6.5,t);
+ const solar=SolarEvolution.sun(year),red=solar.red,remnant=solar.remnant;
 
  // Orbital circles share one projected plane. Early epochs instead expose the accretion disk.
  const formed=smooth(.6,2.6,t);
@@ -233,7 +250,7 @@ function draw(now){
  const activeFocus=focusIndex(event);
  const target=bodies.find(b=>b.i===activeFocus);
  const targetExists=!!target&&(activeFocus!==2||year<7.65)&&(activeFocus>=2||t<5.02+activeFocus*.13);
- const nearStar=state.follow&&(state.focusOverride==='sun'||['dwarf','warming','red-giant','engulfment'].includes(event.effect));
+ const nearStar=state.follow&&(state.focusOverride==='sun'||['dwarf','warming','red-giant','engulfment','helium-burning','second-giant','thermal-pulses'].includes(event.effect));
  const focusedBody=state.follow&&targetExists?target:null;
  const desired={x:focusedBody?focusedBody.x:cx,y:focusedBody?focusedBody.y:cy,zoom:1};
  if(focusedBody){const bodySize=focusedBody.p.size*scale*(.52+.48*smooth(.6,2,t));desired.zoom=clamp((mobile?38:62)/bodySize,2,8)}
@@ -263,25 +280,26 @@ function draw(now){
  }
  // Surviving small-body belts; this is a schematic, not an ephemeris.
  if(formed>.05){ctx.save();ctx.globalAlpha=formed;ctx.translate(cx,cy);ctx.rotate(rotation);const size=radius*1024/440;ctx.drawImage(beltSprite,-size/2,-size/2,size,size);ctx.restore()}
- if(t>5.5){const neb=smooth(5.5,6.2,t)*(1-smooth(6.2,7,t)*.93);ctx.save();ctx.globalCompositeOperation='screen';for(let k=0;k<22;k++){
+ if(year>7.8){const neb=smooth(7.8,7.9,year)*(1-smooth(7.9,8,year)*.93);ctx.save();ctx.globalCompositeOperation='screen';for(let k=0;k<22;k++){
    const r=radius*(.18+(k/22)*.7)*(.8+smooth(5.5,7,t)*.3);ctx.strokeStyle=`rgba(${k<10?'104,189,182':'132,104,175'},${neb*.045})`;ctx.lineWidth=radius*.06;ctx.beginPath();ctx.ellipse(cx,cy,r,r*.64,rotation,0,6.284);ctx.stroke();
   }ctx.restore()}
- let sunR=mix(30,35,smooth(0,3,t))*scale*(.6+.4*smooth(0,.6,t));sunR=mix(sunR,116*scale,red);sunR=mix(sunR,6*scale,remnant);
+ const sunR=year<5?mix(30,35,smooth(0,3,t))*scale*(.6+.4*smooth(0,.6,t)):solar.radius*scale;
  const sunColor=remnant>.6?'180,217,255':red>.2?'255,107,42':'255,171,54';
  glow(cx,cy,sunR*(remnant>.6?8:5.7),sunColor,remnant>.6?.36:.64);
  if(remnant<.6){ctx.drawImage(sunTexture,cx-sunR,cy-sunR,sunR*2,sunR*2);if(red>.01){ctx.save();ctx.globalCompositeOperation='source-atop';ctx.globalAlpha=red*.25;ctx.fillStyle='#ff5420';ctx.beginPath();ctx.arc(cx,cy,sunR*.97,0,6.284);ctx.fill();ctx.restore()}}
  else{const g=ctx.createRadialGradient(cx-sunR*.3,cy-sunR*.3,0,cx,cy,sunR);g.addColorStop(0,'#fff');g.addColorStop(.6,'#d8edff');g.addColorStop(1,'#7dabc9');ctx.fillStyle=g;ctx.beginPath();ctx.arc(cx,cy,sunR,0,6.284);ctx.fill()}
- if(state.labels){ctx.fillStyle='#e0c395';ctx.font=`${(mobile?10:12)/camera.zoom}px 'Noto Sans KR',sans-serif`;ctx.textAlign='center';ctx.fillText(t<.65?'원시 태양':t>6.3?'백색왜성':'태양',cx,cy+sunR+21*scale/camera.zoom)}
+ if(state.labels){ctx.fillStyle='#e0c395';ctx.font=`${(mobile?10:12)/camera.zoom}px 'Noto Sans KR',sans-serif`;ctx.textAlign='center';ctx.fillText(t<.65?'원시 태양':solar.stage==='dwarf'?'백색왜성':'태양',cx,cy+sunR+21*scale/camera.zoom)}
  const planetAlpha=smooth(.6,1.7,t);
  for(const b of bodies){const {p,i,x,y}=b;let a=planetAlpha;
   if(i<2)a*=1-smooth(4.72+i*.08,5.02+i*.13,t);
   if(i===2)a*=1-smooth(7.5,7.65,year);
   if(a<.01)continue;
   let r=p.size*scale*(.52+.48*smooth(.6,2,t));ctx.save();ctx.globalAlpha=a;
-  if(i===2&&t>2.7&&t<4.4)glow(x,y,r*2.1,'74,158,233',.25);
+  if(i===2&&t>2.7&&t<4.4){const dry=SolarEvolution.earth(year).dry;glow(x,y,r*2.1,dry>.5?'210,143,80':'74,158,233',.25)}
   if(i===5){ctx.globalAlpha=a*(year>0?1-smooth(0,.6,year):event.effect==='rings'?.25+.75*progress:1);ctx.strokeStyle='rgba(190,175,145,.52)';ctx.lineWidth=r*.55;ctx.beginPath();ctx.ellipse(x,y,r*1.87,r*.50,-.34,0,6.284);ctx.stroke();ctx.strokeStyle='rgba(88,86,80,.8)';ctx.lineWidth=r*.07;ctx.beginPath();ctx.ellipse(x,y,r*1.77,r*.48,-.34,0,6.284);ctx.stroke()}
   ctx.globalAlpha=a;
   let surface=textures[i];if(i===2){if(year<-4.4)surface=moltenEarth;else if(year<-.72)surface=oceanEarth;else if((year>=-.717&&year<-.66)||(year>=-.65&&year<-.635))surface=iceEarth;}if(i===3&&event.effect==='wet-mars')surface=wetMars;ctx.drawImage(surface,x-r,y-r,2*r,2*r);
+  if(i===2){drawEarthClimate(year,x,y,r,a)}
   if(i===2&&eventAlpha>0)drawEarthEffect(event,x,y,r,progress,eventAlpha);
   if(i===5){ctx.globalAlpha=a*(year>0?1-smooth(0,.6,year):event.effect==='rings'?.25+.75*progress:1);ctx.strokeStyle='rgba(204,188,153,.65)';ctx.lineWidth=r*.30;ctx.beginPath();ctx.ellipse(x,y,r*1.93,r*.52,-.34,0,Math.PI);ctx.stroke()}
   ctx.globalAlpha=a;
@@ -301,9 +319,40 @@ function draw(now){
  if(event.effect==='comets'||event.effect==='bombardment'){ctx.save();ctx.globalAlpha=eventAlpha;ctx.strokeStyle=event.effect==='comets'?'rgba(145,201,226,.4)':'rgba(235,174,111,.5)';ctx.lineWidth=1;for(let k=0;k<18;k++){const q=particles[k],a=q.a+clock*.07,rr=radius*(.18+q.r*.85),p1=point(rr,a),p2=point(rr*(event.effect==='comets'?1.11:.91),a+.015);ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(p2.x,p2.y);ctx.stroke()}ctx.restore()}
  ctx.restore();
 }
+function drawEarthClimate(year,x,y,r,alpha){
+ const climate=SolarEvolution.earth(year);
+ ctx.save();
+ // A single land shape is a symbol of a possible supercontinent, not a map.
+ if(climate.supercontinent>0){
+  ctx.beginPath();ctx.arc(x,y,r*.96,0,Math.PI*2);ctx.clip();
+  ctx.globalAlpha=alpha*climate.supercontinent;ctx.drawImage(oceanEarth,x-r,y-r,r*2,r*2);
+  ctx.fillStyle='#ae9968';ctx.beginPath();
+  ctx.moveTo(x-r*.45,y-r*.78);ctx.bezierCurveTo(x+r*.5,y-r*.95,x+r*.82,y-r*.22,x+r*.36,y+r*.25);
+  ctx.bezierCurveTo(x+r*.15,y+r*.9,x-r*.55,y+r*.68,x-r*.36,y+r*.14);
+  ctx.bezierCurveTo(x-r*.8,y-r*.18,x-r*.72,y-r*.45,x-r*.45,y-r*.78);ctx.fill();
+ }
+ ctx.restore();ctx.save();
+ if(climate.dry>0){ctx.globalAlpha=alpha*climate.dry;ctx.drawImage(dryEarth,x-r,y-r,r*2,r*2)}
+ ctx.restore();
+}
 function drawEarthEffect(event,x,y,r,progress,alpha){
- const fx=event.effect;if(!['ocean-life','snowball','thaw','chicxulub'].includes(fx))return;
+ const fx=event.effect;if(!['ocean-life','snowball','thaw','chicxulub','oxygen','deoxygenation','biosphere','volcanism','supercontinent','water-loss'].includes(fx))return;
  ctx.save();ctx.globalAlpha*=alpha;
+ if(['oxygen','deoxygenation','biosphere'].includes(fx)){
+  const oxygen=SolarEvolution.earth(yearAt(state.time)).oxygen;
+  glow(x,y,r*2.7,'104,211,190',.15+.25*oxygen);
+  ctx.strokeStyle=`rgba(146,230,220,${.2+.5*oxygen})`;ctx.lineWidth=r*.07;ctx.beginPath();ctx.arc(x,y,r*1.13,0,Math.PI*2);ctx.stroke();
+ }
+ if(fx==='volcanism'){
+  glow(x,y,r*2.4,'224,114,52',.36);ctx.fillStyle='#ffb463';
+  for(let k=0;k<5;k++){const px=x+Math.sin(k*2.4)*r*.6,py=y+Math.cos(k*1.7)*r*.6;ctx.beginPath();ctx.moveTo(px-r*.09,py);ctx.lineTo(px,py-r*.23);ctx.lineTo(px+r*.1,py);ctx.fill()}
+ }
+ if(fx==='supercontinent')glow(x,y,r*2.5,'235,169,97',.28);
+ if(fx==='water-loss'){
+  const dry=SolarEvolution.earth(yearAt(state.time)).dry;
+  glow(x,y,r*2.8,'218,166,105',.2+dry*.18);ctx.strokeStyle='rgba(175,216,224,.5)';ctx.lineWidth=r*.06;
+  for(let k=0;k<5;k++){const px=x+(k-2)*r*.32;ctx.beginPath();ctx.moveTo(px,y-r*.6);ctx.quadraticCurveTo(px+r*.3,y-r*1.2,px,y-r*(1.5+progress*.4));ctx.stroke()}
+ }
  if(fx==='snowball'||fx==='thaw'){
   const ice=fx==='thaw'?1-smooth(0,.8,progress):.8;
   ctx.globalAlpha*=ice;ctx.drawImage(iceEarth,x-r,y-r,r*2,r*2);ctx.globalAlpha=alpha;

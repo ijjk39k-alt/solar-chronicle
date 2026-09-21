@@ -15,7 +15,9 @@ const SolarEvolution = (() => {
     const pulse = pulseWindow * Math.sin((year - 7.74) / .06 * Math.PI * 6);
     const heliumSize = 13 * smooth(7.59, 7.62, year);
     const radius = (35 + first * 81 + heliumSize + second * 56 + pulse * 9) * (1 - remnant) + 6 * remnant;
-    const stage = year >= 7.98 ? 'dwarf' : year >= 7.80 ? 'ejection' : year >= 7.74 ? 'pulses' : year >= 7.68 ? 'second' : year >= 7.62 ? 'helium' : 'first';
+    // Allow for floating-point rounding when a timeline position becomes a year.
+    const stageYear = year + 1e-10;
+    const stage = stageYear >= 7.98 ? 'dwarf' : stageYear >= 7.80 ? 'ejection' : stageYear >= 7.74 ? 'pulses' : stageYear >= 7.68 ? 'second' : stageYear >= 7.62 ? 'helium' : 'first';
     return { radius, red: Math.max(first, second), remnant, stage, pulse };
   }
   function earth(year) {

@@ -68,6 +68,15 @@ test('oxygen loss does not imply an immediately dry planet; dry appearance persi
   assert.ok(evolution.earth(.25).supercontinent > 0);
 });
 
+test('solar stage labels survive timeline conversion at event boundaries', () => {
+  for (const [year, stage] of [[7.62, 'helium'], [7.68, 'second'], [7.74, 'pulses'], [7.80, 'ejection'], [7.98, 'dwarf']]) {
+    const position = (year + 4.6) / 12.6 * 7;
+    const restoredYear = -4.6 + 12.6 * (position / 7);
+    assert.equal(evolution.sun(restoredYear).stage, stage);
+    assert.notEqual(evolution.sun(year - .001).stage, stage);
+  }
+});
+
 test('HTML loads data and helpers before the app and every UI binding exists', () => {
   const html = read('index.html');
   const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);

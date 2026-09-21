@@ -1,0 +1,21 @@
+# 개인 설정과 비밀 값
+.env
+.env.*
+*.pem
+*.key
+
+# 운영체제와 편집기의 임시 파일
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.log
+*.tmp
+*.bak
+*~
+
+# 개발용 파일과 기존 호스팅 설정
+node_modules/
+.openai/
+.wrangler/

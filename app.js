@@ -22,7 +22,7 @@ const planets = [
  {name:'천왕성',color:[119,200,208],size:12,orbit:.845,angle:5.55,period:84},
  {name:'해왕성',color:[67,102,198],size:11.5,orbit:1,angle:2.7,period:164.8}
 ];
-const state = {time:0,playing:false,loop:true,labels:true,orbits:true,era:3,event:18,clock:0,dragging:false,endHold:0,speed:1,follow:false,focusOverride:null};
+const state = {time:0,playing:false,labels:true,orbits:true,era:3,event:18,clock:0,dragging:false,speed:1,follow:false,focusOverride:null};
 let uiDirty=true,sceneDirty=true,lastUIEvent=-1,lastUIChapter='',pendingAnnouncement=false;
 const ui=Object.fromEntries(Array.from(document.querySelectorAll('[id]'),el=>[el.id,el]));
 const textIfChanged=(id,value)=>{if(ui[id].textContent!==value)ui[id].textContent=value};
@@ -71,43 +71,32 @@ const wetMars=sphereTexture({color:[116,142,153]},3);
 const sunTexture=(()=>{const c=document.createElement('canvas');c.width=c.height=240;const g=c.getContext('2d'),im=g.createImageData(240,240);for(let y=0;y<240;y++)for(let x=0;x<240;x++){const nx=(x-120)/117,ny=(y-120)/117,r=Math.hypot(nx,ny);if(r>1)continue;const n=(Math.sin(x*.74+Math.sin(y*.56))*Math.cos(y*.9)+rand()*1.4)/2.4,b=1-r*r*.28;let i=(y*240+x)*4;im.data[i]=255*b;im.data[i+1]=(187+n*34)*b;im.data[i+2]=(61+n*22)*b;im.data[i+3]=clamp((1-r)*1400,0,255)}g.putImageData(im,0,0);return c})();
 
 // The navigation coordinate is linear in geological time, independent of event density.
-const FIRST_YEAR=-4.6,LAST_YEAR=8,TRAVEL_SECONDS=90;
+const FIRST_YEAR=-4.6,LAST_YEAR=8;
 function yearAt(t){return mix(FIRST_YEAR,LAST_YEAR,clamp(t,0,7)/7)}
 function timeForYear(year){return clamp((year-FIRST_YEAR)/(LAST_YEAR-FIRST_YEAR)*7,0,7)}
 function eventPosition(i){return timeForYear(historyEvents[i].year)}
-function indexAtTime(time){let i=0;while(i<historyEvents.length-1&&eventPosition(i+1)<=time+1e-10)i++;return i}
-const narrative={phase:'manual',elapsed:0,duration:10,opacity:1};
+const eventStops=historyEvents.map((_,i)=>eventPosition(i));
+function indexAtTime(time){return SolarPlayback.indexAt(time,eventStops)}
+const narrative={opacity:1};
 const bodyFocus={sun:-1,mercury:0,venus:1,earth:2,moon:2,mars:3,phobos:3,jupiter:4,saturn:5,uranus:6,neptune:7};
 const bodyNames={sun:'태양',mercury:'수성',venus:'금성',earth:'지구',moon:'달',mars:'화성',phobos:'포보스',jupiter:'목성',saturn:'토성',uranus:'천왕성',neptune:'해왕성'};
 function focusIndex(event){return state.focusOverride!==null?bodyFocus[state.focusOverride]:event.focus}
 function focusName(event){return state.focusOverride!==null?bodyNames[state.focusOverride]:event.target}
-function holdDuration(){return 10/Math.min(state.speed,1.5)}
-function beginHold(){state.focusOverride=null;lastUIEvent=-1;narrative.phase='hold';narrative.elapsed=0;narrative.duration=holdDuration();pendingAnnouncement=true;uiDirty=true}
 function advancePlayback(delta){
- if(narrative.phase==='hold'){
-  narrative.elapsed=Math.min(narrative.duration,narrative.elapsed+delta);
-  if(narrative.elapsed>=narrative.duration){
-   if(state.event===historyEvents.length-1){if(state.loop){setTime(0,false,true);beginHold()}else pause();}
-   else narrative.phase='travel';
-  }
- }else{
-  const nextIndex=state.event+1,target=eventPosition(nextIndex);
-  const next=state.time+delta*7/TRAVEL_SECONDS*state.speed;
-  if(next>=target-1e-10){setTime(target,false,true);beginHold()}
-  else setTime(next,false,true);
- }
+ const previousEvent=state.event;
+ setTime(SolarPlayback.advance(state.time,delta,state.speed,eventStops),false,true);
+ if(state.event!==previousEvent){state.focusOverride=null;pendingAnnouncement=true}
+ if(state.time>=7)pause();
 }
 function updateNarrative(){
- const p=clamp(narrative.elapsed/narrative.duration,0,1);
- narrative.opacity=!state.playing?1:narrative.phase==='hold'?(reduced?1:smooth(0,.08,p)*(1-smooth(.84,1,p))):0;
- ui.eventContent.style.opacity=narrative.opacity;
- ui.eventContent.inert=state.playing&&narrative.opacity<.05;
- ui.readingProgress.style.transform=`scaleX(${state.playing&&narrative.phase==='hold'?p:0})`;
- textIfChanged('narrativeStatus',!state.playing?'선택한 시대 · 직전 또는 해당 사건':narrative.phase==='hold'?'사건 관측 · 연대 잠시 정지':'다음 사건으로 시간 이동 중');
- textIfChanged('narrativeDuration',state.playing&&narrative.phase==='hold'?Math.ceil(narrative.duration-narrative.elapsed)+'초':'');
+ const complete=state.time>=7,next=historyEvents[state.event+1];
+ ui.readingProgress.style.transform=`scaleX(${SolarPlayback.progress(state.time,eventStops)})`;
+ textIfChanged('narrativeStatus',complete?'탐험 완료':state.playing?'시간이 흐르는 중 · 사건 따라 읽기':'선택한 시대 · 직전 또는 해당 사건');
+ textIfChanged('narrativeDuration',state.playing?state.speed+'×':'');
+ textIfChanged('nextEventPreview',next?'다음 · '+next.title:'마지막 이야기입니다. 처음부터 다시 탐험할 수 있어요.');
 }
 function visualTime(year){let i=0;while(i<6&&eras[i+1].year<=year)i++;return clamp(i+(year-eras[i].year)/(eras[i+1].year-eras[i].year),0,7)}
-function timeLabel(year){const n=Math.abs(year);if(n<1e-9)return '현재';if(n<.1)return (n*1e5).toLocaleString('ko-KR',{maximumFractionDigits:0})+'만 년';return (n*10).toLocaleString('ko-KR',{maximumFractionDigits:2})+'억 년'}
+function timeLabel(year,precise=false){const n=Math.abs(year);if(n<1e-9)return '현재';if(n<.1)return (n*1e5).toLocaleString('ko-KR',{maximumFractionDigits:0})+'만 년';return (n*10).toLocaleString('ko-KR',{maximumFractionDigits:precise?4:2})+'억 년'}
 const eraButtons=[];
 for(const year of [-4.6,-2,0,2,4,6,8]){
  const b=document.createElement('button');b.className='era-button';b.style.left=(timeForYear(year)/7*100)+'%';
@@ -159,7 +148,7 @@ $('eventCount').textContent=historyEvents.length;
 function setTime(value,announce=false,automatic=false){
  const n=Number(value);if(!Number.isFinite(n))return;
  state.time=clamp(n,0,7);state.event=indexAtTime(state.time);
- if(!automatic){state.focusOverride=null;narrative.phase="manual";narrative.elapsed=0;}
+ if(!automatic)state.focusOverride=null;
  const y=yearAt(state.time);state.era=Math.min(7,Math.floor(visualTime(y)+1e-7));uiDirty=true;sceneDirty=true;pendingAnnouncement ||= announce;
 }
 function syncUI(){
@@ -167,7 +156,7 @@ function syncUI(){
  const year=yearAt(state.time),e=historyEvents[state.event],chapter=eras[state.era];
  ui.followCamera.setAttribute('aria-pressed',String(state.follow));textIfChanged('cameraMode',state.follow?'ON':'OFF');
  textIfChanged('cameraStatus',state.follow?(focusIndex(e)>=0?'근접 관측 · '+focusName(e):['dwarf','warming','red-giant'].includes(e.effect)?'근접 관측 · '+e.target:'넓은 시야 · '+e.target):'사건의 천체를 가까이 관측합니다');
- ui.timeline.value=state.time;const valueText=timeLabel(year);
+ ui.timeline.value=state.time;const valueText=timeLabel(year,true);
  textIfChanged('timeValue',valueText);textIfChanged('timeDirection',Math.abs(year)<1e-9?'지금, 이 순간':year<0?'현재로부터 과거':'현재로부터 미래 · 예측');
  textIfChanged('eraRange',`사건 ${state.event+1} / ${historyEvents.length} · ${e.target}`);
  const aria=`${valueText} ${year<0?'전':year>0?'후':''}, ${e.title}`;if(ui.timeline.getAttribute('aria-valuetext')!==aria)ui.timeline.setAttribute('aria-valuetext',aria);
@@ -189,18 +178,18 @@ function syncUI(){
   ui.previousEvent.disabled=state.event===0;ui.nextEvent.disabled=state.event===historyEvents.length-1;ui.back.disabled=state.event===0;ui.forward.disabled=state.event===historyEvents.length-1;
  }
  if(pendingAnnouncement){pendingAnnouncement=false;textIfChanged('announcement',e.date+', '+e.title)}
+ updatePlay();
 }
 function seekEvent(index,body=null){pause();setTime(eventPosition(clamp(index,0,historyEvents.length-1)),true);state.focusOverride=Object.hasOwn(bodyFocus,body)?body:null;lastUIEvent=-1;syncUI()}
-function pause(){state.playing=false;state.endHold=0;sceneDirty=true;uiDirty=true;updatePlay();updateNarrative()}
-function updatePlay(){$('playIcon').textContent=state.playing?'Ⅱ':'▶';$('playText').textContent=state.playing?'일시 정지':'자동 탐험';$('play').setAttribute('aria-label',state.playing?'시간 자동 재생 일시 정지':'시간 자동 재생')}
+function pause(){state.playing=false;sceneDirty=true;uiDirty=true;updatePlay();updateNarrative()}
+function updatePlay(){const label=state.playing?'일시 정지':state.time>=7?'다시 탐험':'자동 탐험';textIfChanged('playIcon',state.playing?'Ⅱ':'▶');textIfChanged('playText',label);$('play').setAttribute('aria-label',state.playing?'시간 자동 재생 일시 정지':state.time>=7?'처음부터 다시 자동 탐험':'선택한 시점부터 자동 탐험')}
 function togglePlay(){if(state.playing){pause();return}if(state.time>=7)setTime(0);state.playing=true;
- if(narrative.phase==='manual'){if(Math.abs(state.time-eventPosition(state.event))<1e-9)beginHold();else narrative.phase='travel'}
  previous=0;sceneDirty=true;updatePlay();updateNarrative()}
 $('followCamera').onclick=()=>{state.follow=!state.follow;uiDirty=true;sceneDirty=true;syncUI();textIfChanged('announcement',state.follow?'사건 따라보기를 켰습니다. 시간을 이동하면 해당 천체를 따라갑니다.':'태양계 전체 보기로 돌아갑니다.')};
 $('play').onclick=togglePlay;$('back').onclick=$('previousEvent').onclick=()=>seekEvent(state.event-1);$('forward').onclick=$('nextEvent').onclick=()=>seekEvent(state.event+1);$('present').onclick=()=>seekEvent(historyEvents.findIndex(e=>e.id==='present'));
-$('speed').onclick=()=>{const speeds=[.5,1,2];const fraction=narrative.elapsed/narrative.duration;state.speed=speeds[(speeds.indexOf(state.speed)+1)%3];narrative.duration=holdDuration();narrative.elapsed=fraction*narrative.duration;$('speed').textContent=state.speed+'×'};
+$('startOver').onclick=()=>{seekEvent(0);togglePlay()};
+$('speed').onclick=()=>{const speeds=[.5,1,2];state.speed=speeds[(speeds.indexOf(state.speed)+1)%3];$('speed').textContent=state.speed+'×';uiDirty=true;sceneDirty=true;updateNarrative()};
 $('chronicleButton').onclick=()=>{pause();$('chronicle').showModal()};$('closeChronicle').onclick=()=>$('chronicle').close();
-$('loop').onclick=()=>{state.loop=!state.loop;$('loop').setAttribute('aria-pressed',state.loop)};
 $('timeline').addEventListener('input',e=>{pause();setTime(e.target.value)});$('timeline').addEventListener('change',()=>setTime(state.time,true));
 for(const name of ['labels','orbits'])$(name).onclick=()=>{state[name]=!state[name];uiDirty=true;sceneDirty=true;$(name).setAttribute('aria-pressed',state[name]);$(name).querySelector('span').textContent=state[name]?'ON':'OFF'};
 canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;state.dragging=true;dragStart=e.clientX;dragTime=state.time;canvas.setPointerCapture(e.pointerId);pause()});
@@ -233,7 +222,7 @@ function draw(now){
 
  // Orbital circles share one projected plane. Early epochs instead expose the accretion disk.
  const formed=smooth(.6,2.6,t);
- const progress=state.playing?clamp(narrative.elapsed/narrative.duration,0,1):.5;
+ const progress=state.playing?SolarPlayback.progress(state.time,eventStops):.5;
  const eventAlpha=narrative.opacity;
  const emphasis=.6+.4*Math.sin(Math.PI*clamp(progress*1.5,0,1));
  const orbitRadius=i=>{let r=planets[i].orbit;if(event.effect==='migration'&&(i===4||i===5))r*=1-.34*Math.sin(progress*Math.PI);if(event.effect==='outer-migration'&&i>=6)r*=.8+.2*progress;return r*radius};

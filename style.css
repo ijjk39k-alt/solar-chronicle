@@ -38,6 +38,8 @@
 .related-stories button:hover{background:#bfe8ce18}
 .archive-tabs{flex-wrap:wrap}
 #storyDialog{width:min(680px,calc(100vw - 32px))}
+.story-playback{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:16px 0 24px;padding:12px;border:1px solid #aecfb233;border-radius:8px;font-size:12px;color:var(--mint)}
+.story-playback button{border:1px solid #aecfb255;border-radius:20px;padding:8px 14px;white-space:nowrap}
 #storyDialog .story-footnote{font-size:12px;color:var(--muted);margin-top:24px}
 #storyList>p{font-size:14px;color:#9db0b8}
 #startOver{font-size:12px;padding:8px;white-space:nowrap;color:var(--mint)}

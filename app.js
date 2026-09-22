@@ -96,6 +96,7 @@ function updateNarrative(){
  ui.readingProgress.style.transform=`scaleX(${SolarPlayback.progress(state.time,eventStops)})`;
  textIfChanged('narrativeStatus',complete?'탐험 완료':state.playing?'시간이 흐르는 중 · 사건 따라 읽기':'선택한 시대 · 직전 또는 해당 사건');
  textIfChanged('narrativeDuration',state.playing?state.speed+'×':'');
+ if(ui.storyDialog.open){const year=yearAt(state.time),direction=Math.abs(year)<1e-9?'':year<0?' 전':' 후';textIfChanged('storyPlaybackStatus',complete?'탐험 완료':`${state.playing?'시간이 계속 흐르고 있어요':'일시 정지 중'} · ${timeLabel(year,true)}${direction}`);textIfChanged('storyPlay',state.playing?'일시 정지':complete?'다시 탐험':'자동 탐험 이어가기')}
  textIfChanged('nextEventPreview',next?'다음 · '+next.title:'마지막 이야기입니다. 처음부터 다시 탐험할 수 있어요.');
 }
 function visualTime(year){let i=0;while(i<6&&eras[i+1].year<=year)i++;return clamp(i+(year-eras[i].year)/(eras[i+1].year-eras[i].year),0,7)}
@@ -123,7 +124,7 @@ function renderMarkerGroups(){
   button.style.left=(members.reduce((sum,i)=>sum+eventPosition(i),0)/members.length/7*100)+'%';
   button.textContent=members.length>1?String(members.length):'•';
   button.title=members.length>1?members.length+'개 사건 · 펼쳐 보기':historyEvents[members[0]].date+' · '+historyEvents[members[0]].title;
-  button.setAttribute('aria-label',button.title);button.onclick=()=>{if(members.length===1){seekEvent(members[0]);return}pause();ui.markerChoices.replaceChildren();
+  button.setAttribute('aria-label',button.title);button.onclick=()=>{if(members.length===1){seekEvent(members[0]);return}ui.markerChoices.replaceChildren();
    for(const i of members){const e=historyEvents[i],b=document.createElement('button');b.className='tree-event';b.innerHTML=`<small>${e.date} · ${e.target}</small><strong>${e.title} ↗</strong>`;b.onclick=()=>{ui.markerPicker.close();seekEvent(i)};ui.markerChoices.appendChild(b)}ui.markerPicker.showModal()};
   ui.eventMarkers.appendChild(button);markerGroups.push({button,indices:members});indices=[];
  }
@@ -131,8 +132,7 @@ function renderMarkerGroups(){
 }
 renderMarkerGroups();addEventListener('resize',renderMarkerGroups);
 ui.closeMarkerPicker.onclick=()=>ui.markerPicker.close();
-ui.eventContent.addEventListener('focusin',()=>{if(state.playing)pause()});
-ui.eventDetails.addEventListener('toggle',()=>{if(ui.eventDetails.open&&state.playing)pause()});
+// Reading and focusing explanations never changes playback state.
 function buildTree(node,parent,depth=0){
  const branch=document.createElement('details');branch.className='tree-branch';branch.open=depth<2;
  const summary=document.createElement('summary'),ids=bodyEvents[node.key]||[];
@@ -148,14 +148,15 @@ buildTree(encyclopedia,ui.bodyTree);
 function archiveView(view){ui.eventList.hidden=view!=='time';ui.bodyTree.hidden=view!=='bodies';ui.storyList.hidden=view!=='stories';ui.chronologyTab.setAttribute('aria-pressed',String(view==='time'));ui.bodiesTab.setAttribute('aria-pressed',String(view==='bodies'));ui.storiesTab.setAttribute('aria-pressed',String(view==='stories'));textIfChanged('chronicleTitle',view==='bodies'?'천체별 역사 도감':view==='stories'?'태양계에서 이어지는 이야기':'태양계의 사건 연대기')}
 ui.chronologyTab.onclick=()=>archiveView('time');ui.bodiesTab.onclick=()=>archiveView('bodies');ui.storiesTab.onclick=()=>archiveView('stories');
 function openStory(story){
- pause();textIfChanged('storyTitle',story.title);textIfChanged('storyBadge',story.badge);ui.storyBadge.className='badge '+story.kind;
+ textIfChanged('storyTitle',story.title);textIfChanged('storyBadge',story.badge);ui.storyBadge.className='badge '+story.kind;
  ui.storyBody.replaceChildren();ui.storySources.replaceChildren();
  for(const paragraph of story.paragraphs){const p=document.createElement('p');p.textContent=paragraph;ui.storyBody.appendChild(p)}
  for(const ref of story.refs){const a=document.createElement('a');a.href=sources[ref][1];a.textContent=sources[ref][0]+' ↗';a.target='_blank';a.rel='noopener noreferrer';ui.storySources.appendChild(a)}
- ui.storyDialog.showModal();ui.storyDialog.scrollTop=0;
+ ui.storyDialog.showModal();ui.storyDialog.scrollTop=0;updateNarrative();
 }
 for(const story of contextStories){const b=document.createElement('button');b.className='tree-event';b.innerHTML=`<small>${story.badge}</small><strong>${story.title} ↗</strong>`;b.onclick=()=>openStory(story);ui.storyList.appendChild(b)}
 ui.closeStory.onclick=()=>ui.storyDialog.close();
+ui.storyPlay.onclick=togglePlay;
 $('eventCount').textContent=historyEvents.length;
 function setTime(value,announce=false,automatic=false){
  const n=Number(value);if(!Number.isFinite(n))return;
@@ -197,22 +198,22 @@ function syncUI(){
  if(pendingAnnouncement){pendingAnnouncement=false;textIfChanged('announcement',e.date+', '+e.title)}
  updatePlay();
 }
-function seekEvent(index,body=null){pause();setTime(eventPosition(clamp(index,0,historyEvents.length-1)),true);state.focusOverride=Object.hasOwn(bodyFocus,body)?body:null;lastUIEvent=-1;syncUI()}
+function seekEvent(index,body=null){setTime(eventPosition(clamp(index,0,historyEvents.length-1)),true);state.focusOverride=Object.hasOwn(bodyFocus,body)?body:null;lastUIEvent=-1;syncUI()}
 function pause(){state.playing=false;sceneDirty=true;uiDirty=true;updatePlay();updateNarrative()}
 function updatePlay(){const label=state.playing?'일시 정지':state.time>=7?'다시 탐험':'자동 탐험';textIfChanged('playIcon',state.playing?'Ⅱ':'▶');textIfChanged('playText',label);$('play').setAttribute('aria-label',state.playing?'시간 자동 재생 일시 정지':state.time>=7?'처음부터 다시 자동 탐험':'선택한 시점부터 자동 탐험')}
 function togglePlay(){if(state.playing){pause();return}if(state.time>=7)setTime(0);state.playing=true;
  previous=0;sceneDirty=true;updatePlay();updateNarrative()}
 $('followCamera').onclick=()=>{state.follow=!state.follow;uiDirty=true;sceneDirty=true;syncUI();textIfChanged('announcement',state.follow?'사건 따라보기를 켰습니다. 시간을 이동하면 해당 천체를 따라갑니다.':'태양계 전체 보기로 돌아갑니다.')};
-$('play').onclick=togglePlay;$('back').onclick=$('previousEvent').onclick=()=>seekEvent(state.event-1);$('forward').onclick=$('nextEvent').onclick=()=>seekEvent(state.event+1);$('present').onclick=()=>seekEvent(historyEvents.findIndex(e=>e.id==='present'));
-$('startOver').onclick=()=>{seekEvent(0);togglePlay()};
+$('play').onclick=togglePlay;$('back').onclick=$('previousEvent').onclick=()=>seekEvent(state.event-1);$('forward').onclick=$('nextEvent').onclick=()=>seekEvent(state.event+1);$('present').onclick=()=>{pause();seekEvent(historyEvents.findIndex(e=>e.id==='present'))};
+$('startOver').onclick=()=>{pause();seekEvent(0);togglePlay()};
 $('speed').onclick=()=>{const speeds=[.5,1,2];state.speed=speeds[(speeds.indexOf(state.speed)+1)%3];$('speed').textContent=state.speed+'×';uiDirty=true;sceneDirty=true;updateNarrative()};
-$('chronicleButton').onclick=()=>{pause();$('chronicle').showModal()};$('closeChronicle').onclick=()=>$('chronicle').close();
+$('chronicleButton').onclick=()=>$('chronicle').showModal();$('closeChronicle').onclick=()=>$('chronicle').close();
 $('timeline').addEventListener('input',e=>{pause();setTime(e.target.value)});$('timeline').addEventListener('change',()=>setTime(state.time,true));
 for(const name of ['labels','orbits'])$(name).onclick=()=>{state[name]=!state[name];uiDirty=true;sceneDirty=true;$(name).setAttribute('aria-pressed',state[name]);$(name).querySelector('span').textContent=state[name]?'ON':'OFF'};
 canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;state.dragging=true;dragStart=e.clientX;dragTime=state.time;canvas.setPointerCapture(e.pointerId);pause()});
 canvas.addEventListener('pointermove',e=>{if(state.dragging){setTime(dragTime+(e.clientX-dragStart)/Math.max(400,W*.8)*7);$('dragHint').style.opacity='.35'}});
 function endDrag(){if(state.dragging){state.dragging=false;setTime(state.time,true)}}canvas.addEventListener('pointerup',endDrag);canvas.addEventListener('pointercancel',endDrag);canvas.addEventListener('lostpointercapture',endDrag);
-$('sourcesButton').onclick=()=>{pause();$('guide').showModal()};$('closeGuide').onclick=()=>$('guide').close();$('guide').addEventListener('click',e=>{if(e.target===$('guide')){const r=$('guide').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$('guide').close()}});
+$('sourcesButton').onclick=()=>$('guide').showModal();$('closeGuide').onclick=()=>$('guide').close();$('guide').addEventListener('click',e=>{if(e.target===$('guide')){const r=$('guide').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$('guide').close()}});
 $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else{$('announcement').textContent='이 브라우저에서는 전체 화면을 지원하지 않습니다.';$('fullscreen').textContent='—'}}catch{$('announcement').textContent='전체 화면으로 전환할 수 없습니다.'}};
 document.addEventListener('keydown',e=>{if($('guide').open||$('chronicle').open||$('markerPicker').open||ui.storyDialog.open||e.target.closest('input,button,a,summary'))return;if(e.code==='Space'){e.preventDefault();togglePlay()}if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();pause();setTime(state.time+(e.key==='ArrowRight'?.04:-.04),true)}});
 document.addEventListener('visibilitychange',()=>{previous=0;uiDirty=true});
